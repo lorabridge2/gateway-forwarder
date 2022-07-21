@@ -1,4 +1,4 @@
-FROM alpine:3.15 as build
+FROM alpine:3 as build
 
 WORKDIR /home/lora
 RUN apk update
@@ -26,7 +26,7 @@ WORKDIR /home/lora/lora_pkt_fwd
 RUN rm global_conf.json
 RUN make
 
-FROM alpine:3.15
+FROM alpine:3
 WORKDIR /home/lora
 
 # RUN apk update
