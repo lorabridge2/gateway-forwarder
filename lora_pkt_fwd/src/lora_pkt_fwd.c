@@ -1147,6 +1147,8 @@ int main(void)
     float up_ack_ratio;
     float dw_ack_ratio;
 
+    init_gpio("gpiochip0");
+
     /* display version informations */
     time(&now_time);
     strftime(stat_timestamp, sizeof(stat_timestamp), "%Y%m%d%H%M%S", gmtime(&now_time)); /* format yyyymmddThhmmssZ */

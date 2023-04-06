@@ -13,7 +13,7 @@ RUN apk update
 # 000000001 HAL: Failed. Aborting.
 
 # alpine edge install wiringpi 2.61-r0 which works with --privileged
-RUN apk add --no-cache build-base linux-headers
+RUN apk add --no-cache build-base linux-headers libgpiod-dev
 # RUN apk add --no-cache wiringpi-dev --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
 # COPY . .
@@ -30,6 +30,7 @@ RUN make
 FROM alpine:3
 WORKDIR /home/lora
 
+RUN apk add --no-cache libgpiod-dev
 # RUN apk update
 # RUN apk add --no-cache hiredis
 # RUN apk add --no-cache wiringpi --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
@@ -47,4 +48,4 @@ WORKDIR /home/lora/lora_pkt_fwd
 ENTRYPOINT ["/bin/sh", "-c"]
 # ENTRYPOINT ["/bin/sh", "-c", "/home/lora/lora_pkt_fwd/lora_pkt_fwd"]
 # "/home/lora/lora_pkt_fwd/lora_pkt_fwd" 
-CMD [ "/home/lora/reset_lgw.sh start && /home/lora/lora_pkt_fwd/lora_pkt_fwd" ]
+CMD [ "/home/lora/lora_pkt_fwd/lora_pkt_fwd" ]
