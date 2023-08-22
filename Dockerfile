@@ -27,7 +27,7 @@ WORKDIR /home/lora/lora_pkt_fwd
 RUN rm global_conf.json
 RUN make
 
-FROM alpine:3
+FROM alpine:${IMG_VERSION}
 WORKDIR /home/lora
 
 # RUN apk update
