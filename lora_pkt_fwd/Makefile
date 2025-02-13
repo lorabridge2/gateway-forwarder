@@ -32,7 +32,7 @@ INCLUDES += $(LGW_PATH)/inc/loragw_gps.h
 
 ### Linking options
 
-LIBS := -lloragw -lrt -lpthread -lm
+LIBS := -lloragw -lrt -lpthread -lm -lgpiod
 
 ### General build targets
 
