@@ -30,7 +30,7 @@ RUN make
 FROM alpine:${IMG_VERSION}
 WORKDIR /home/lora
 
-RUN apk add --no-cache libgpiod-dev python3 py3-pip
+RUN apk add --no-cache libgpiod-dev python3 py3-pip build-base
 # RUN apk update
 # RUN apk add --no-cache hiredis
 # RUN apk add --no-cache wiringpi --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
