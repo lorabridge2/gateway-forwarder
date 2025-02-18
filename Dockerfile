@@ -1,4 +1,4 @@
-ARG  IMG_VERSION=3.17
+ARG  IMG_VERSION=3.21
 FROM alpine:${IMG_VERSION} as build
 
 WORKDIR /home/lora
@@ -37,7 +37,7 @@ RUN apk add --no-cache libgpiod-dev python3 py3-pip
 # #--repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 # WORKDIR /home/lora
 # COPY --from=build /home/lora/lmic-rpi-lora-gps-hat/examples/transmit/build/transmit.out /home/lora/transmit.out
-RUN pip install gpiod
+RUN pip install gpiod --break-system-packages
 
 COPY --from=build /home/lora/lora_pkt_fwd/lora_pkt_fwd /home/lora/lora_pkt_fwd/lora_pkt_fwd
 

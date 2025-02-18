@@ -9,8 +9,11 @@
  *
  */
 
-//#include <sys/time.h>
+// #include <sys/time.h>
+#include "radio.h"
+#include "loragw_hal.h"
 #include <fcntl.h>
+#include <gpiod.h>
 #include <linux/spi/spidev.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -18,9 +21,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <gpiod.h>
-#include "loragw_hal.h"
-#include "radio.h"
 
 extern int32_t lgw_sf_getval(int x);
 extern int32_t lgw_bw_getval(int x);
@@ -30,14 +30,15 @@ static const uint8_t rxlorairqmask[] = {
     [RXMODE_SCAN] = IRQ_LORA_RXDONE_MASK | IRQ_LORA_CRCERR_MASK,
     [RXMODE_RSSI] = 0x00,
 };
-const char *chipname = "gpiochip0";
+// const char *chipname = "gpiochip0";
+const char *chipname = "/dev/gpiochip0";
 struct gpiod_chip *chip;
 
 int init_gpio(char *chipname) {
     if (chip) {
         return 1;
     }
-    chip = gpiod_chip_open_by_name(chipname);
+    chip = gpiod_chip_open(chipname);
     if (!chip) {
         return -1;
     }
@@ -49,218 +50,30 @@ int init_gpio(char *chipname) {
  * @gpio the GPIO pin to reserve.
  * @return true if the reservation was successful.
  */
-static struct gpiod_line *gpio_reserve(int gpio) {
-    // int fd; /* File descriptor for GPIO controller class */
-    // char buf[3]; /* Write buffer */
-
-    /* Try to open GPIO controller class */
-    // fd = open("/sys/class/gpio/export", O_WRONLY);
-    struct gpiod_line *line = gpiod_chip_get_line(chip, gpio);
-    if (!line) {
-        return NULL;
-    }
-    // if (fd < 0) {
-    //     /* The file could not be opened */
-    //     fprintf(stderr, "gpio_reserve: could not open /sys/class/gpio/export\r\n");
-    //     return false;
-    // }
-
-    // /* Prepare buffer */
-    // snprintf(buf, 3, "%d", gpio);
-
-    // /* Try to reserve GPIO */
-    // if (write(fd, buf, strlen(buf)) < 0) {
-    //     close(fd);
-    //     fprintf(stderr, "gpio_reserve: could not write '%s' to /sys/class/gpio/export\r\n", buf);
-    //     return false;
-    // }
-
-    // /* Close the GPIO controller class */
-    // if (close(fd) < 0) {
-    //     fprintf(stderr, "gpio_reserve: could not close /sys/class/gpio/export\r\n");
-    //     return false;
-    // }
-
-    /* Success */
-    // return true;
-    return line;
-}
-
-/*
- * Release a GPIO after use.
- * @gpio the GPIO pin to release.
- * @return true if the release was successful.
- */
-static void gpio_release(struct gpiod_line *line) {
-    // int fd; /* File descriptor for GPIO controller class */
-    // char buf[3]; /* Write buffer */
-
-    /* Try to open GPIO controller class */
-    // fd = open("/sys/class/gpio/unexport", O_WRONLY);
-    gpiod_line_release(line);
-    // if (fd < 0) {
-    //     /* The file could not be opened */
-    //    fprintf(stderr, "gpio_release: could not open /sys/class/gpio/unexport\r\n");
-    //    return false;
-    // }
-
-    // /* Prepare buffer */
-    // snprintf(buf, 3, "%d", gpio);
-
-    // /* Try to release GPIO */
-    // if (write(fd, buf, strlen(buf)) < 0) {
-    //     fprintf(stderr, "gpio_release: could not write /sys/class/gpio/unexport\r\n");
-    //     return false;
-    // }
-
-    // /* Close the GPIO controller class */
-    // if (close(fd) < 0) {
-    //     fprintf(stderr, "gpio_release: could not close /sys/class/gpio/unexport\r\n");
-    //     return false;
-    // }
-
-    // /* Success */
-    // return true;
-}
-
-/*
- * Set the direction of the GPIO port.
- * @gpio the GPIO pin to release.
- * @direction the direction of the GPIO port.
- * @return true if the direction could be successfully set.
- */
-static bool gpio_set_direction(struct gpiod_line *line, int direction) {
-    // int fd;       /* File descriptor for GPIO port */
-    // char buf[33]; /* Write buffer */
-
-    // /* Make the GPIO port path */
-    // snprintf(buf, 33, "/sys/class/gpio/gpio%d/direction", gpio);
-
-    // /* Try to open GPIO port for writing only */
-    // fd = open(buf, O_WRONLY);
-    // if (fd < 0) {
-    //     /* The file could not be opened */
-    //     return false;
-    // }
-
-    /* Set the port direction */
-    if (direction == GPIO_OUT) {
-        if (gpiod_line_request_output(line, "lora", 0) < 0) {
-            return false;
-        }
-        // if (write(fd, "out", 3) < 0) {
-        //     return false;
-        // }
-    } else {
-        if (gpiod_line_request_input(line, "lora") < 0) {
-            return false;
-        }
-        // if (write(fd, "in", 2) < 0) {
-        //     return false;
-        // }
-    }
-
-    /* Close the GPIO port */
-    // if (close(fd) < 0) {
-    //     return false;
-    // }
-
-    /* Success */
-    return true;
-}
-
-/*
- * Set the state of the GPIO port.
- * @gpio the GPIO pin to set the state for.
- * @state 1 or 0
- * @return true if the state change was successful.
- */
-static bool gpio_set_state(struct gpiod_line *line, int state) {
-    // int fd;       /* File descriptor for GPIO port */
-    // char buf[29]; /* Write buffer */
-
-    // /* Make the GPIO port path */
-    // snprintf(buf, 29, "/sys/class/gpio/gpio%d/value", gpio);
-
-    /* Try to open GPIO port */
-    // fd = open(buf, O_WRONLY);
-    // if (fd < 0) {
-    //     /* The file could not be opened */
-    //     return false;
-    // }
-
-    if (gpiod_line_set_value(line, state) < 0) {
-        return false;
-    }
-
-    /* Set the port state */
-    // if (write(fd, (state == 1 ? "1" : "0"), 1) < 0) {
-    //     return false;
-    // }
-
-    // /* Close the GPIO port */
-    // if (close(fd) < 0) {
-    //     return false;
-    // }
-
-    /* Success */
-    return true;
-}
-
-/*
- * Get the state of the GPIO port.
- * @gpio the gpio pin to get the state from.
- * @return GPIO_HIGH if the pin is HIGH, GPIO_LOW if the pin is low. GPIO_ERR
- * when an error occured.
- */
-static int gpio_get_state(struct gpiod_line *line) {
-    // int fd;          /* File descriptor for GPIO port */
-    // char buf[29];    /* Write buffer */
-    // char port_state; /* Character indicating the port state */
-    int state; /* API integer indicating the port state */
-
-    // /* Make the GPIO port path */
-    // snprintf(buf, 29, "/sys/class/gpio/gpio%d/value", gpio);
-
-    // /* Try to open GPIO port */
-    // fd = open(buf, O_RDONLY);
-    // if (fd < 0) {
-    //     /* The file could not be opened */
-    //     fprintf(stderr, "gpio_get_state: could not open /sys/class/gpio/gpio%d/value\r\n", gpio);
-    //     return LOW;
-    // }
-    state = gpiod_line_get_value(line);
-    if (state < 0) {
-        return LOW;
-    }
-
-    // /* Read the port state */
-    // if (read(fd, &port_state, 1) < 0) {
-    //     close(fd);
-    //     fprintf(stderr, "gpio_get_state: could not read /sys/class/gpio/gpio%d/value\r\n", gpio);
-    //     return LOW;
-    // }
-
-    // /* Translate the port state into API state */
-    // state = port_state == '1' ? HIGH : LOW;
-
-    // /* Close the GPIO port */
-    // if (close(fd) < 0) {
-    //     fprintf(stderr, "gpio_get_state: could not close /sys/class/gpio/gpio%d/value\r\n", gpio);
-    //     return LOW;
-    // }
-
-    /* Return the state */
-    return state;
-}
+// s
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 void digitalWrite(int gpio, int state) {
-    struct gpiod_line *line = gpio_reserve(gpio);
-    gpio_set_direction(line, GPIO_OUT);
-    gpio_set_state(line, state);
-    gpio_release(line);
+    enum gpiod_line_direction dir = GPIOD_LINE_DIRECTION_OUTPUT;
+    struct gpiod_line_settings *line_settings = gpiod_line_settings_new();
+    struct gpiod_line_config *line_config = gpiod_line_config_new();
+    struct gpiod_line_request *line;
+    // enum gpiod_line_value val = state == 1 ? GPIOD_LINE_VALUE_ACTIVE :
+    // GPIOD_LINE_VALUE_INACTIVE;
+
+    gpiod_line_settings_set_direction(line_settings, dir);
+    gpiod_line_config_add_line_settings(line_config, &gpio, 1, line_settings);
+    line = gpiod_chip_request_lines(chip, NULL, line_config);
+    gpiod_line_request_set_value(line, gpio, state);
+
+    gpiod_line_settings_free(line_settings);
+    gpiod_line_config_free(line_config);
+    gpiod_line_request_release(line);
+    // struct gpiod_line *line = gpio_reserve(gpio);
+    // gpio_set_direction(line, GPIO_OUT);
+    // gpio_set_state(line, state);
+    // gpio_release(line);
 }
 
 /*
@@ -271,16 +84,32 @@ void digitalWrite(int gpio, int state) {
  * is -1 when an error occurred.
  */
 int digitalRead(int gpio) {
-    int state; /* The port state */
-    struct gpiod_line *line = gpio_reserve(gpio);
-    /* Reserve the port */
-    if (!line) {
-        return -1;
-    }
+    int state;
+    enum gpiod_line_direction dir = GPIOD_LINE_DIRECTION_OUTPUT;
+    struct gpiod_line_settings *line_settings = gpiod_line_settings_new();
+    struct gpiod_line_config *line_config = gpiod_line_config_new();
+    struct gpiod_line_request *line;
+
+    // gpiod_line_settings_set_direction(line_settings, dir);
+    gpiod_line_config_add_line_settings(line_config, &gpio, 1, line_settings);
+    line = gpiod_chip_request_lines(chip, NULL, line_config);
+    state = gpiod_line_request_get_value(line, gpio);
+
+    gpiod_line_settings_free(line_settings);
+    gpiod_line_config_free(line_config);
+    gpiod_line_request_release(line);
+
+    // int state; /* The port state */
+    // struct gpiod_line *line = gpio_reserve(gpio);
+    // /* Reserve the port */
+    // if (!line)
+    // {
+    //     return -1;
+    // }
 
     /* Read the port */
-    state = gpio_get_state(line);
-    gpio_release(line);
+    // state = gpio_get_state(line);
+    // gpio_release(line);
     // if (!gpio_release(gpio)) {
     //     return -1;
     // }
@@ -385,7 +214,8 @@ static void writeReg(uint8_t spidev, uint8_t addr, uint8_t value) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 static void opmode(uint8_t spidev, uint8_t mode) {
-    writeReg(spidev, REG_OPMODE, (readReg(spidev, REG_OPMODE) & ~OPMODE_MASK) | mode);
+    writeReg(spidev, REG_OPMODE,
+             (readReg(spidev, REG_OPMODE) & ~OPMODE_MASK) | mode);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -433,7 +263,8 @@ void setsf(uint8_t spidev, int sf) {
         writeReg(spidev, REG_DETECTION_THRESHOLD, 0x0a);
     }
 
-    writeReg(spidev, REG_MODEM_CONFIG2, (readReg(spidev, REG_MODEM_CONFIG2) & 0x0f) | ((sf << 4) & 0xf0));
+    writeReg(spidev, REG_MODEM_CONFIG2,
+             (readReg(spidev, REG_MODEM_CONFIG2) & 0x0f) | ((sf << 4) & 0xf0));
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -459,11 +290,13 @@ void setsbw(uint8_t spidev, long sbw) {
         bw = 7;
     } else if (sbw <= 250E3) {
         bw = 8;
-    } else /*if (sbw <= 250E3)*/ {
+    } else /*if (sbw <= 250E3)*/
+    {
         bw = 9;
     }
 
-    writeReg(spidev, REG_MODEM_CONFIG, (readReg(spidev, REG_MODEM_CONFIG) & 0x0f) | (bw << 4));
+    writeReg(spidev, REG_MODEM_CONFIG,
+             (readReg(spidev, REG_MODEM_CONFIG) & 0x0f) | (bw << 4));
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -475,7 +308,8 @@ void setcr(uint8_t spidev, int denominator) {
         denominator = 4;
     }
 
-    writeReg(spidev, REG_MODEM_CONFIG, (readReg(spidev, REG_MODEM_CONFIG) & 0xf1) | (denominator << 1));
+    writeReg(spidev, REG_MODEM_CONFIG,
+             (readReg(spidev, REG_MODEM_CONFIG) & 0xf1) | (denominator << 1));
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -495,9 +329,11 @@ void setsyncword(uint8_t spidev, int sw) {
 
 void crccheck(uint8_t spidev, uint8_t nocrc) {
     if (nocrc)
-        writeReg(spidev, REG_MODEM_CONFIG2, readReg(spidev, REG_MODEM_CONFIG2) & 0xfb);
+        writeReg(spidev, REG_MODEM_CONFIG2,
+                 readReg(spidev, REG_MODEM_CONFIG2) & 0xfb);
     else
-        writeReg(spidev, REG_MODEM_CONFIG2, readReg(spidev, REG_MODEM_CONFIG2) | 0x04);
+        writeReg(spidev, REG_MODEM_CONFIG2,
+                 readReg(spidev, REG_MODEM_CONFIG2) | 0x04);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -549,7 +385,8 @@ int spi_open(char *spi_path) {
     a = ioctl(spidev, SPI_IOC_WR_BITS_PER_WORD, &i);
     b = ioctl(spidev, SPI_IOC_RD_BITS_PER_WORD, &i);
     if ((a < 0) || (b < 0)) {
-        fprintf(stderr, "ERROR(%s): SPI PORT FAIL TO SET 8 BITS-PER-WORD\n", spi_path);
+        fprintf(stderr, "ERROR(%s): SPI PORT FAIL TO SET 8 BITS-PER-WORD\n",
+                spi_path);
         close(spidev);
         return -1;
     }
@@ -631,7 +468,8 @@ void rxlora(int spidev, uint8_t rxmode) {
     writeReg(spidev, REG_FIFO_ADDR_PTR, 0x00);
 
     // configure DIO mapping DIO0=RxDone DIO1=RxTout DIO2=NOP
-    writeReg(spidev, REG_DIO_MAPPING_1, MAP_DIO0_LORA_RXDONE | MAP_DIO1_LORA_RXTOUT | MAP_DIO2_LORA_NOP);
+    writeReg(spidev, REG_DIO_MAPPING_1,
+             MAP_DIO0_LORA_RXDONE | MAP_DIO1_LORA_RXTOUT | MAP_DIO2_LORA_NOP);
 
     // clear all radio IRQ flags
     writeReg(spidev, REG_IRQ_FLAGS, 0xFF);
@@ -663,7 +501,8 @@ bool received(uint8_t spidev, struct lgw_pkt_rx_s *pkt_rx) {
 
     // printf("Start receive, flags=%d\n", irqflags);
 
-    if ((irqflags & IRQ_LORA_RXDONE_MASK) && (irqflags & IRQ_LORA_CRCERR_MASK) == 0) {
+    if ((irqflags & IRQ_LORA_RXDONE_MASK) &&
+        (irqflags & IRQ_LORA_CRCERR_MASK) == 0) {
 
         uint8_t currentAddr = readReg(spidev, REG_FIFO_RX_CURRENT_ADDR);
         uint8_t receivedCount = readReg(spidev, REG_RX_NB_BYTES);
@@ -696,9 +535,9 @@ bool received(uint8_t spidev, struct lgw_pkt_rx_s *pkt_rx) {
         pkt_rx->rssi = readReg(spidev, REG_PKTRSSI) - rssicorr;
 
         return true;
-    } /* else if (readReg(spidev, REG_OPMODE) != (OPMODE_LORA | OPMODE_RX_SINGLE)) {  //single mode
-        writeReg(spidev, REG_FIFO_ADDR_PTR, 0x00);
-        rxlora(spidev, RXMODE_SINGLE);
+    } /* else if (readReg(spidev, REG_OPMODE) != (OPMODE_LORA | OPMODE_RX_SINGLE))
+    {  //single mode writeReg(spidev, REG_FIFO_ADDR_PTR, 0x00); rxlora(spidev,
+    RXMODE_SINGLE);
     }*/
     return false;
 }
@@ -736,10 +575,16 @@ void txlora(radiodev *dev, struct lgw_pkt_tx_s *pkt) {
     writeReg(dev->spiport, REG_PACONFIG, (uint8_t)(0x80 | (15 & 0xf)));
 
     if (pkt->invert_pol) {
-        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
+        writeReg(dev->spiport, REG_INVERTIQ,
+                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
+                  INVERTIQ_TX_MASK) |
+                     INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_ON);
     } else {
-        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
+        writeReg(dev->spiport, REG_INVERTIQ,
+                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
+                  INVERTIQ_TX_MASK) |
+                     INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_OFF);
     }
 
@@ -749,7 +594,8 @@ void txlora(radiodev *dev, struct lgw_pkt_tx_s *pkt) {
     opmode(dev->spiport, OPMODE_STANDBY);
 
     // set the IRQ mapping DIO0=TxDone DIO1=NOP DIO2=NOP
-    writeReg(dev->spiport, REG_DIO_MAPPING_1, MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
+    writeReg(dev->spiport, REG_DIO_MAPPING_1,
+             MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
     // clear all radio IRQ flags
     writeReg(dev->spiport, REG_IRQ_FLAGS, 0xFF);
     // mask all IRQs but TxDone
@@ -775,7 +621,10 @@ void txlora(radiodev *dev, struct lgw_pkt_tx_s *pkt) {
     while (digitalRead(dev->dio[0]) == 0)
         ;
 
-    printf("\nTransmit at SF%iBW%d on %.6lf %ddBm.\n", lgw_sf_getval(pkt->datarate), lgw_bw_getval(pkt->bandwidth) / 1000, (double)(pkt->freq_hz) / 1000000, dev->rf_power > 0 ? dev->rf_power : pkt->rf_power);
+    printf("\nTransmit at SF%iBW%d on %.6lf %ddBm.\n",
+           lgw_sf_getval(pkt->datarate), lgw_bw_getval(pkt->bandwidth) / 1000,
+           (double)(pkt->freq_hz) / 1000000,
+           dev->rf_power > 0 ? dev->rf_power : pkt->rf_power);
 
     // mask all IRQs
     writeReg(dev->spiport, REG_IRQ_FLAGS_MASK, 0xFF);
@@ -804,15 +653,22 @@ void single_tx(radiodev *dev, uint8_t *payload, int size) {
     setpower(dev->spiport, dev->rf_power);
 
     if (dev->invertio) {
-        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
+        writeReg(dev->spiport, REG_INVERTIQ,
+                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
+                  INVERTIQ_TX_MASK) |
+                     INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_ON);
     } else {
-        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
+        writeReg(dev->spiport, REG_INVERTIQ,
+                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
+                  INVERTIQ_TX_MASK) |
+                     INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_OFF);
     }
 
     // set the IRQ mapping DIO0=TxDone DIO1=NOP DIO2=NOP
-    writeReg(dev->spiport, REG_DIO_MAPPING_1, MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
+    writeReg(dev->spiport, REG_DIO_MAPPING_1,
+             MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
     // clear all radio IRQ flags
     writeReg(dev->spiport, REG_IRQ_FLAGS, 0xFF);
     // mask all IRQs but TxDone
@@ -838,10 +694,8 @@ void single_tx(radiodev *dev, uint8_t *payload, int size) {
     while (digitalRead(dev->dio[0]) == 0)
         ;
 
-    printf("\nTransmit at SF%iBW%d on %.6lf, %i(dBm).\n",
-           dev->sf, (dev->bw) / 1000,
-           (double)(dev->freq) / 1000000,
-           dev->rf_power);
+    printf("\nTransmit at SF%iBW%d on %.6lf, %i(dBm).\n", dev->sf,
+           (dev->bw) / 1000, (double)(dev->freq) / 1000000, dev->rf_power);
 
     // mask all IRQs
     writeReg(dev->spiport, REG_IRQ_FLAGS_MASK, 0xFF);
