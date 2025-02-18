@@ -13,7 +13,7 @@ RUN apk update
 # 000000001 HAL: Failed. Aborting.
 
 # alpine edge install wiringpi 2.61-r0 which works with --privileged
-RUN apk add --no-cache build-base linux-headers libgpiod-dev python3-dev python3 py3-pip 
+RUN apk add --no-cache build-base linux-headers libgpiod-dev python3-dev python3 py3-pip
 # RUN apk add --no-cache wiringpi-dev --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
 # COPY . .
@@ -32,7 +32,7 @@ RUN pip install gpiod --break-system-packages
 FROM alpine:${IMG_VERSION}
 WORKDIR /home/lora
 
-RUN apk add --no-cache libgpiod-dev python3 py3-pip 
+RUN apk add --no-cache libgpiod-dev python3
 # RUN apk update
 # RUN apk add --no-cache hiredis
 # RUN apk add --no-cache wiringpi --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
@@ -42,7 +42,7 @@ RUN apk add --no-cache libgpiod-dev python3 py3-pip
 # RUN pip install gpiod --break-system-packages
 
 COPY --from=build /home/lora/lora_pkt_fwd/lora_pkt_fwd /home/lora/lora_pkt_fwd/lora_pkt_fwd
-COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=build /usr/lib/python3.12/site-packages /usr/lib/python3.12/site-packages
 
 # ENTRYPOINT [ "tail", "-f", "/dev/null" ]
 # COPY reset_lgw.sh /home/lora/
