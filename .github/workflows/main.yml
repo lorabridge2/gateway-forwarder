@@ -43,6 +43,6 @@ jobs:
           push: true
           platforms: linux/arm/v7
           tags: |
-            ${{ env.REGISTRY }}/lorabridge/gateway-forwarder:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/lorabridge/gateway-forwarder:latest
+            ${{ env.REGISTRY }}/lorabridge2/gateway-forwarder:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/lorabridge2/gateway-forwarder:latest
           cache-to: type=inline
