@@ -30,22 +30,24 @@ RUN make
 FROM alpine:${IMG_VERSION}
 WORKDIR /home/lora
 
-RUN apk add --no-cache libgpiod-dev
+RUN apk add --no-cache libgpiod-dev python3 py3-pip
 # RUN apk update
 # RUN apk add --no-cache hiredis
 # RUN apk add --no-cache wiringpi --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 # #--repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 # WORKDIR /home/lora
 # COPY --from=build /home/lora/lmic-rpi-lora-gps-hat/examples/transmit/build/transmit.out /home/lora/transmit.out
+RUN pip install gpiod
 
 COPY --from=build /home/lora/lora_pkt_fwd/lora_pkt_fwd /home/lora/lora_pkt_fwd/lora_pkt_fwd
 
 # ENTRYPOINT [ "tail", "-f", "/dev/null" ]
-COPY reset_lgw.sh /home/lora/
+# COPY reset_lgw.sh /home/lora/
+COPY reset.py /home/lora/
 COPY lora_pkt_fwd/global_conf.json lora_pkt_fwd/global_conf.json
 WORKDIR /home/lora/lora_pkt_fwd
 
 ENTRYPOINT ["/bin/sh", "-c"]
 # ENTRYPOINT ["/bin/sh", "-c", "/home/lora/lora_pkt_fwd/lora_pkt_fwd"]
 # "/home/lora/lora_pkt_fwd/lora_pkt_fwd" 
-CMD [ "/home/lora/lora_pkt_fwd/lora_pkt_fwd" ]
+CMD [ "python /home/lora/reset.py && /home/lora/lora_pkt_fwd/lora_pkt_fwd" ]
