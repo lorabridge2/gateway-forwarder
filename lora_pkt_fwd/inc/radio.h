@@ -131,27 +131,22 @@
 // rxmode
 // ##################################################################
 //
-enum {
-    RXMODE_SINGLE,
-    RXMODE_SCAN,
-    RXMODE_RSSI
-};
+enum { RXMODE_SINGLE,
+       RXMODE_SCAN,
+       RXMODE_RSSI };
 
 /*******************************************************************************
  * radio configure
  *******************************************************************************/
 
-enum sf_t {
-    SF7 = 7,
-    SF8,
-    SF9,
-    SF10,
-    SF11,
-    SF12
-};
+enum sf_t { SF7 = 7,
+            SF8,
+            SF9,
+            SF10,
+            SF11,
+            SF12 };
 
-typedef struct
-{
+typedef struct {
     uint8_t nss;
     uint8_t rst;
     uint8_t dio[3];

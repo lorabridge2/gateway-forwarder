@@ -10,10 +10,7 @@
  */
 
 // #include <sys/time.h>
-#include "radio.h"
-#include "loragw_hal.h"
 #include <fcntl.h>
-#include <gpiod.h>
 #include <linux/spi/spidev.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -21,6 +18,9 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <gpiod.h>
+#include "loragw_hal.h"
+#include "radio.h"
 
 extern int32_t lgw_sf_getval(int x);
 extern int32_t lgw_bw_getval(int x);
@@ -45,13 +45,6 @@ int init_gpio(char *chipname) {
     return 0;
 }
 
-/*
- * Reserve a GPIO for this program's use.
- * @gpio the GPIO pin to reserve.
- * @return true if the reservation was successful.
- */
-// s
-
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 void digitalWrite(int gpio, int state) {
@@ -59,8 +52,7 @@ void digitalWrite(int gpio, int state) {
     struct gpiod_line_settings *line_settings = gpiod_line_settings_new();
     struct gpiod_line_config *line_config = gpiod_line_config_new();
     struct gpiod_line_request *line;
-    // enum gpiod_line_value val = state == 1 ? GPIOD_LINE_VALUE_ACTIVE :
-    // GPIOD_LINE_VALUE_INACTIVE;
+    // enum gpiod_line_value val = state == 1 ? GPIOD_LINE_VALUE_ACTIVE : GPIOD_LINE_VALUE_INACTIVE;
 
     gpiod_line_settings_set_direction(line_settings, dir);
     gpiod_line_config_add_line_settings(line_config, &gpio, 1, line_settings);
@@ -214,8 +206,7 @@ static void writeReg(uint8_t spidev, uint8_t addr, uint8_t value) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 static void opmode(uint8_t spidev, uint8_t mode) {
-    writeReg(spidev, REG_OPMODE,
-             (readReg(spidev, REG_OPMODE) & ~OPMODE_MASK) | mode);
+    writeReg(spidev, REG_OPMODE, (readReg(spidev, REG_OPMODE) & ~OPMODE_MASK) | mode);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -263,8 +254,7 @@ void setsf(uint8_t spidev, int sf) {
         writeReg(spidev, REG_DETECTION_THRESHOLD, 0x0a);
     }
 
-    writeReg(spidev, REG_MODEM_CONFIG2,
-             (readReg(spidev, REG_MODEM_CONFIG2) & 0x0f) | ((sf << 4) & 0xf0));
+    writeReg(spidev, REG_MODEM_CONFIG2, (readReg(spidev, REG_MODEM_CONFIG2) & 0x0f) | ((sf << 4) & 0xf0));
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -295,8 +285,7 @@ void setsbw(uint8_t spidev, long sbw) {
         bw = 9;
     }
 
-    writeReg(spidev, REG_MODEM_CONFIG,
-             (readReg(spidev, REG_MODEM_CONFIG) & 0x0f) | (bw << 4));
+    writeReg(spidev, REG_MODEM_CONFIG, (readReg(spidev, REG_MODEM_CONFIG) & 0x0f) | (bw << 4));
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -308,8 +297,7 @@ void setcr(uint8_t spidev, int denominator) {
         denominator = 4;
     }
 
-    writeReg(spidev, REG_MODEM_CONFIG,
-             (readReg(spidev, REG_MODEM_CONFIG) & 0xf1) | (denominator << 1));
+    writeReg(spidev, REG_MODEM_CONFIG, (readReg(spidev, REG_MODEM_CONFIG) & 0xf1) | (denominator << 1));
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -329,11 +317,9 @@ void setsyncword(uint8_t spidev, int sw) {
 
 void crccheck(uint8_t spidev, uint8_t nocrc) {
     if (nocrc)
-        writeReg(spidev, REG_MODEM_CONFIG2,
-                 readReg(spidev, REG_MODEM_CONFIG2) & 0xfb);
+        writeReg(spidev, REG_MODEM_CONFIG2, readReg(spidev, REG_MODEM_CONFIG2) & 0xfb);
     else
-        writeReg(spidev, REG_MODEM_CONFIG2,
-                 readReg(spidev, REG_MODEM_CONFIG2) | 0x04);
+        writeReg(spidev, REG_MODEM_CONFIG2, readReg(spidev, REG_MODEM_CONFIG2) | 0x04);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -385,8 +371,7 @@ int spi_open(char *spi_path) {
     a = ioctl(spidev, SPI_IOC_WR_BITS_PER_WORD, &i);
     b = ioctl(spidev, SPI_IOC_RD_BITS_PER_WORD, &i);
     if ((a < 0) || (b < 0)) {
-        fprintf(stderr, "ERROR(%s): SPI PORT FAIL TO SET 8 BITS-PER-WORD\n",
-                spi_path);
+        fprintf(stderr, "ERROR(%s): SPI PORT FAIL TO SET 8 BITS-PER-WORD\n", spi_path);
         close(spidev);
         return -1;
     }
@@ -468,8 +453,7 @@ void rxlora(int spidev, uint8_t rxmode) {
     writeReg(spidev, REG_FIFO_ADDR_PTR, 0x00);
 
     // configure DIO mapping DIO0=RxDone DIO1=RxTout DIO2=NOP
-    writeReg(spidev, REG_DIO_MAPPING_1,
-             MAP_DIO0_LORA_RXDONE | MAP_DIO1_LORA_RXTOUT | MAP_DIO2_LORA_NOP);
+    writeReg(spidev, REG_DIO_MAPPING_1, MAP_DIO0_LORA_RXDONE | MAP_DIO1_LORA_RXTOUT | MAP_DIO2_LORA_NOP);
 
     // clear all radio IRQ flags
     writeReg(spidev, REG_IRQ_FLAGS, 0xFF);
@@ -501,8 +485,7 @@ bool received(uint8_t spidev, struct lgw_pkt_rx_s *pkt_rx) {
 
     // printf("Start receive, flags=%d\n", irqflags);
 
-    if ((irqflags & IRQ_LORA_RXDONE_MASK) &&
-        (irqflags & IRQ_LORA_CRCERR_MASK) == 0) {
+    if ((irqflags & IRQ_LORA_RXDONE_MASK) && (irqflags & IRQ_LORA_CRCERR_MASK) == 0) {
 
         uint8_t currentAddr = readReg(spidev, REG_FIFO_RX_CURRENT_ADDR);
         uint8_t receivedCount = readReg(spidev, REG_RX_NB_BYTES);
@@ -535,9 +518,9 @@ bool received(uint8_t spidev, struct lgw_pkt_rx_s *pkt_rx) {
         pkt_rx->rssi = readReg(spidev, REG_PKTRSSI) - rssicorr;
 
         return true;
-    } /* else if (readReg(spidev, REG_OPMODE) != (OPMODE_LORA | OPMODE_RX_SINGLE))
-    {  //single mode writeReg(spidev, REG_FIFO_ADDR_PTR, 0x00); rxlora(spidev,
-    RXMODE_SINGLE);
+    } /* else if (readReg(spidev, REG_OPMODE) != (OPMODE_LORA | OPMODE_RX_SINGLE)) {  //single mode
+        writeReg(spidev, REG_FIFO_ADDR_PTR, 0x00);
+        rxlora(spidev, RXMODE_SINGLE);
     }*/
     return false;
 }
@@ -575,16 +558,10 @@ void txlora(radiodev *dev, struct lgw_pkt_tx_s *pkt) {
     writeReg(dev->spiport, REG_PACONFIG, (uint8_t)(0x80 | (15 & 0xf)));
 
     if (pkt->invert_pol) {
-        writeReg(dev->spiport, REG_INVERTIQ,
-                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
-                  INVERTIQ_TX_MASK) |
-                     INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
+        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_ON);
     } else {
-        writeReg(dev->spiport, REG_INVERTIQ,
-                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
-                  INVERTIQ_TX_MASK) |
-                     INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
+        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_OFF);
     }
 
@@ -594,8 +571,7 @@ void txlora(radiodev *dev, struct lgw_pkt_tx_s *pkt) {
     opmode(dev->spiport, OPMODE_STANDBY);
 
     // set the IRQ mapping DIO0=TxDone DIO1=NOP DIO2=NOP
-    writeReg(dev->spiport, REG_DIO_MAPPING_1,
-             MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
+    writeReg(dev->spiport, REG_DIO_MAPPING_1, MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
     // clear all radio IRQ flags
     writeReg(dev->spiport, REG_IRQ_FLAGS, 0xFF);
     // mask all IRQs but TxDone
@@ -621,10 +597,7 @@ void txlora(radiodev *dev, struct lgw_pkt_tx_s *pkt) {
     while (digitalRead(dev->dio[0]) == 0)
         ;
 
-    printf("\nTransmit at SF%iBW%d on %.6lf %ddBm.\n",
-           lgw_sf_getval(pkt->datarate), lgw_bw_getval(pkt->bandwidth) / 1000,
-           (double)(pkt->freq_hz) / 1000000,
-           dev->rf_power > 0 ? dev->rf_power : pkt->rf_power);
+    printf("\nTransmit at SF%iBW%d on %.6lf %ddBm.\n", lgw_sf_getval(pkt->datarate), lgw_bw_getval(pkt->bandwidth) / 1000, (double)(pkt->freq_hz) / 1000000, dev->rf_power > 0 ? dev->rf_power : pkt->rf_power);
 
     // mask all IRQs
     writeReg(dev->spiport, REG_IRQ_FLAGS_MASK, 0xFF);
@@ -653,22 +626,15 @@ void single_tx(radiodev *dev, uint8_t *payload, int size) {
     setpower(dev->spiport, dev->rf_power);
 
     if (dev->invertio) {
-        writeReg(dev->spiport, REG_INVERTIQ,
-                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
-                  INVERTIQ_TX_MASK) |
-                     INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
+        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_ON);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_ON);
     } else {
-        writeReg(dev->spiport, REG_INVERTIQ,
-                 (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK &
-                  INVERTIQ_TX_MASK) |
-                     INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
+        writeReg(dev->spiport, REG_INVERTIQ, (readReg(dev->spiport, REG_INVERTIQ) & INVERTIQ_RX_MASK & INVERTIQ_TX_MASK) | INVERTIQ_RX_OFF | INVERTIQ_TX_OFF);
         writeReg(dev->spiport, REG_INVERTIQ2, INVERTIQ2_OFF);
     }
 
     // set the IRQ mapping DIO0=TxDone DIO1=NOP DIO2=NOP
-    writeReg(dev->spiport, REG_DIO_MAPPING_1,
-             MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
+    writeReg(dev->spiport, REG_DIO_MAPPING_1, MAP_DIO0_LORA_TXDONE | MAP_DIO1_LORA_NOP | MAP_DIO2_LORA_NOP);
     // clear all radio IRQ flags
     writeReg(dev->spiport, REG_IRQ_FLAGS, 0xFF);
     // mask all IRQs but TxDone
@@ -694,8 +660,10 @@ void single_tx(radiodev *dev, uint8_t *payload, int size) {
     while (digitalRead(dev->dio[0]) == 0)
         ;
 
-    printf("\nTransmit at SF%iBW%d on %.6lf, %i(dBm).\n", dev->sf,
-           (dev->bw) / 1000, (double)(dev->freq) / 1000000, dev->rf_power);
+    printf("\nTransmit at SF%iBW%d on %.6lf, %i(dBm).\n",
+           dev->sf, (dev->bw) / 1000,
+           (double)(dev->freq) / 1000000,
+           dev->rf_power);
 
     // mask all IRQs
     writeReg(dev->spiport, REG_IRQ_FLAGS_MASK, 0xFF);
