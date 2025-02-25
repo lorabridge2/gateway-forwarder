@@ -1,10 +1,12 @@
 # Gateway Forwarder
 
-This repository is part of the [LoRaBridge](https://github.com/lorabridge/lorabridge) project.
+This repository is part of the [LoRaBridge](https://github.com/lorabridge2/lorabridge) project.
 It provides the docker image for the packet forwarding used on our gateway device.
 
 The Packet Forwarder is a self-provided C application based on [this repository](https://github.com/fhessel/dragino_pi_gateway_fwd) that interacts with the LoRaWAN hat. 
 It receives the LoRaWAN packets and publishes the data to the Chirpstack Gateway Bridge.
+
+> The original code was patched to use libgiod instead of the gpio sysfs.
 
 ## License
 
